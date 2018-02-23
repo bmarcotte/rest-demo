@@ -1,0 +1,12 @@
+version: '3.2'
+services:
+  bookmarkapi:
+    build: "https://github.com/bmarcotte/rest-demo-${BACKEND:-java}-backend.git"
+    ports:
+      - "8080:8080"
+  frontend:
+    build: "https://github.com/bmarcotte/rest-demo-${FRONTEND:-react}-frontend.git"
+    ports:
+      - "3000:3000"
+    links:
+      - bookmarkapi
