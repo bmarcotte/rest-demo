@@ -3,28 +3,21 @@
 use strict;
 use warnings;
 
-my $base_url      = $ENV{BASE_URL} || 'http://localhost:8080/rest';
-my $bookmark_url  = "${base_url}/bookmark";
-my $bookmarks_url = "${base_url}/bookmarks";
-my %params        = (
-  add_form    => q{name=form_name&url=form_url},
-  add_json    => q{{ "name": "json add", "url": "http://json/add" }},
-  delete_form => q{id=1},
-  update_form => q{id=1&name=update_name&url=update_url},
-  update_json => q{{ "id": 1, "name": "json update", "url": "http://json/update" }},
-);
+my $port      = $ENV{SERVER_PORT} || $ENV{PORT} || '8080';
+my $base_url  = $ENV{BASE_URL} || "http://localhost:${port}/rest";
 my %curl_args = (
-    'bad_path'             => [ "${base_url}/bogus" ],
-    'bookmarks'            => [ $bookmarks_url ],
-    'bookmarks_bad_method' => [ qw( -X POST ), $bookmarks_url ],
-    'bookmark_bad_method'  => [ qw( -X GET ),  $bookmark_url  ],
-    'bookmark_add_form'    => [ qw( -X POST -d ), $params{add_form}, $bookmark_url ],
-    'bookmark_add_json'    => [ qw( -X POST -d ), $params{add_json}, qw( -H ), q{Content-Type: application/json}, $bookmark_url ],
-    'bookmark_update_form' => [ qw( -X PUT -d ), $params{update_form}, $bookmark_url ],
-    'bookmark_update_json' => [ qw( -X PUT -d ), $params{update_json}, qw( -H ), q{Content-Type: application/json}, $bookmark_url ],
-    'bookmark_get'         => [ $bookmark_url . q{/1} ],
-    'bookmark_delete_form' => [ qw( -X DELETE -d ), $params{delete_form}, $bookmark_url ],
-    'bookmark_delete_path' => [ qw( -X DELETE ), $bookmark_url . q{/1} ],
+    'bad_path'             => { path => 'bogus' },
+    'bookmarks'            => {},
+    'bookmarks_bad_method' => { method => 'POST' },
+    'bookmark_bad_method'  => { method => 'GET' },
+    'bookmark_add_form'    => { data => q{name=form_name&url=form_url} },
+    'bookmark_add_json'    => { data => q{{ "name": "json add", "url": "http://json/add" }} },
+    'bookmark_update_form' => { data => q{id=1&name=update_name&url=update_url} },
+    'bookmark_update_json' => { data => q{{ "id": 1, "name": "json update", "url": "http://json/update" }} },
+    'bookmark_get_path'    => {},
+    'bookmark_delete_form' => { data => q{id=1} },
+    'bookmark_delete_json' => { data => q{{ "id": 1 }} },
+    'bookmark_delete_path' => {},
 );
 
 my @curl_cmd   = qw( curl );
@@ -65,11 +58,58 @@ foreach my $name ( @ARGV ) {
 }
 
 foreach my $name ( @clean_args ) {
-    my @cmd = ( @curl_cmd, @{ $curl_args{ $name } } );
+    my @cmd = ( @curl_cmd, get_curl_args( $name ) );
     print "CMD[$name]: @cmd\n";
 
     system @cmd;
     print "\n\n";
+}
+
+sub get_curl_args {
+  my ( $name ) = @_;
+
+  return if ! defined $curl_args{ $name };
+
+  my ( $endpoint, $action, $data_type ) = split m/ _ /msx, $name, 3;
+
+  my @args = ();
+
+  if ( $action ) {
+    my %methods = (
+      add    => 'POST',
+      delete => 'DELETE',
+      get    => 'GET',
+      update => 'PUT',
+    );
+    $curl_args{ $name }->{method} ||= $methods{ $action };
+  }
+  if ( my $method = $curl_args{ $name }->{method} ) {
+    push @args, ( q{-X} => $method );
+  }
+
+  if ( my $data = $curl_args{ $name }->{data} ) {
+    push @args, ( q{-d} => $data );
+  }
+
+  if ( $data_type && $data_type eq 'json' ) {
+    $curl_args{ $name }->{type} ||= $data_type;
+  }
+  if ( my $type = $curl_args{ $name }->{type} ) {
+    if ( $type eq 'json' ) {
+      $type = q{Content-Type: application/json};
+    }
+    push @args, ( q{-H} => $type );
+  }
+
+  if ( $endpoint ) {
+    $curl_args{ $name }->{path} ||= ( $data_type && $data_type eq 'path' )
+      ? "$endpoint/1"
+      : "$endpoint";
+  }
+  my $path = $curl_args{ $name }->{path} || q{};
+  push @args, "${base_url}/$path";
+
+  return @args;
 }
 
 __END__
