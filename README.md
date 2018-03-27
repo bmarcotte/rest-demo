@@ -14,7 +14,8 @@ rest-demo-* repositories.
 
 ### Backend(s)
 
-* [Java](https://github.com/bmarcotte/rest-demo-java-backend)
+* [Java - JAX-RS](https://github.com/bmarcotte/rest-demo-java-backend)
+* [Java - Spring](https://github.com/bmarcotte/rest-demo-spring-backend)
 * [Node.js](https://github.com/bmarcotte/rest-demo-node-backend)
 
 ### Database
