@@ -3,8 +3,10 @@
 use strict;
 use warnings;
 
+my $host      = $ENV{SERVER_HOST} || 'localhost';
 my $port      = $ENV{SERVER_PORT} || $ENV{PORT} || '8080';
-my $base_url  = $ENV{BASE_URL} || "http://localhost:${port}/rest";
+my $base_url  = $ENV{BASE_URL} || "http://${host}:${port}/rest";
+my $id        = $ENV{ROW_ID} || 1;
 my %curl_args = (
     'bad_path'             => { path => 'bogus' },
     'bookmarks'            => {},
@@ -12,11 +14,11 @@ my %curl_args = (
     'bookmark_bad_method'  => { method => 'GET' },
     'bookmark_add_form'    => { data => q{name=form_name&url=form_url} },
     'bookmark_add_json'    => { data => q{{ "name": "json add", "url": "http://json/add" }} },
-    'bookmark_update_form' => { data => q{id=1&name=update_name&url=update_url} },
-    'bookmark_update_json' => { data => q{{ "id": 1, "name": "json update", "url": "http://json/update" }} },
+    'bookmark_update_form' => { data => qq{id=$id&name=update_name&url=update_url} },
+    'bookmark_update_json' => { data => qq{{ "id": $id, "name": "json update", "url": "http://json/update" }} },
     'bookmark_get_path'    => {},
-    'bookmark_delete_form' => { data => q{id=1} },
-    'bookmark_delete_json' => { data => q{{ "id": 1 }} },
+    'bookmark_delete_form' => { data => qq{id=$id} },
+    'bookmark_delete_json' => { data => qq{{ "id": $id }} },
     'bookmark_delete_path' => {},
 );
 
@@ -103,7 +105,7 @@ sub get_curl_args {
 
   if ( $endpoint ) {
     $curl_args{ $name }->{path} ||= ( $data_type && $data_type eq 'path' )
-      ? "$endpoint/1"
+      ? "$endpoint/$id"
       : "$endpoint";
   }
   my $path = $curl_args{ $name }->{path} || q{};
